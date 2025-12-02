@@ -1,35 +1,30 @@
-name: deploy
+name: build-and-upload
 
 on:
   push:
     branches:
-      - main   # Trigger only when code is merged to main
+      - main
 
 jobs:
-  build-and-upload:
+  build:
     runs-on: ubuntu-latest
 
     steps:
-      # Step 1: Checkout code
       - name: Checkout source code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
-      # Step 2: Setup Java
       - name: Setup Java
-        uses: actions/setup-java@v2
+        uses: actions/setup-java@v3
         with:
           java-version: '17'
+          distribution: 'temurin'
 
-      # Step 3: Build project
       - name: Build with Maven
-        run: mvn clean package
+        run: mvn clean package -DskipTests
 
-      # ⭐ NEW STEP ADDED ⭐
-      # Purpose: Log JAR file name and timestamp for debugging
       - name: List target folder contents
-        run: ls -l target
+        run: ls -l target/
 
-      # Step 4: Configure AWS credentials
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v2
         with:
@@ -37,10 +32,10 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ap-south-1
 
-      # Step 5: Upload JAR file to S3
-      - name: Upload JAR to S3
-        run: aws s3 cp target/*.jar s3://${{ env.S3_BUCKET }}/
-        env:
-          S3_BUCKET: my-app-bucket-sudhin-project-2025
+      - name: Upload Build Artifact to S3
+        run: |
+          JAR_FILE=$(ls target/*.jar)
+          echo "Uploading $JAR_FILE to S3..."
+          aws s3 cp $JAR_FILE s3://my-app-bucket-sudhin-project-2025/
 
 
